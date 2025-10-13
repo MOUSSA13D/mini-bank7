@@ -56,7 +56,7 @@ export const AgentsPage = () => {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
-          setProfile((prev) => ({ ...prev, ...parsed }));
+          setProfile((prev: ProfileData) => ({ ...prev, ...parsed }));
         }
       }
     } catch {}
@@ -66,7 +66,7 @@ export const AgentsPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiFetch('/agents?page=1&pageSize=100');
+  const res = await apiFetch('/api/agents?page=1&pageSize=100');
         if (!res.ok) throw new Error('failed');
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
@@ -93,7 +93,7 @@ export const AgentsPage = () => {
 
   // Filter agents based on search query (includes email and account number)
   const searchLc = searchQuery.toLowerCase();
-  const searchFiltered = agents.filter((agent) => {
+  const searchFiltered = agents.filter((agent: Agent) => {
     const email = (agent.email ?? '').toLowerCase();
     const acc = (agent.accountNumber ?? '').toLowerCase();
     return (
@@ -104,13 +104,13 @@ export const AgentsPage = () => {
       acc.includes(searchLc)
     );
   });
-  const filteredAgents = searchFiltered.filter((a) =>
+  const filteredAgents = searchFiltered.filter((a: Agent) =>
     usersTab === 'actifs' ? a.statut === 'Actif' : a.statut === 'Inactif'
   );
 
   // Counts reflecting current search filter
-  const actifsCount = searchFiltered.filter((a) => a.statut === 'Actif').length;
-  const archivesCount = searchFiltered.filter((a) => a.statut === 'Inactif').length;
+  const actifsCount = searchFiltered.filter((a: Agent) => a.statut === 'Actif').length;
+  const archivesCount = searchFiltered.filter((a: Agent) => a.statut === 'Inactif').length;
 
   // Pagination for users: 5 per page
   const pageSize = 5;
@@ -239,15 +239,15 @@ export const AgentsPage = () => {
               onCancel={() => setConfirmUserAction(null)}
               onConfirm={() => {
                 if (!confirmUserAction) return;
-                if (confirmUserAction.type === 'archive') {
+                  if (confirmUserAction.type === 'archive') {
                   const { id } = confirmUserAction;
-                  setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, statut: 'Inactif' } : a)));
+                  setAgents((prev: Agent[]) => prev.map((a: Agent) => (a.id === id ? { ...a, statut: 'Inactif' } : a)));
                 } else if (confirmUserAction.type === 'toggle') {
                   const { id, next } = confirmUserAction;
-                  setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, statut: next } : a)));
+                  setAgents((prev: Agent[]) => prev.map((a: Agent) => (a.id === id ? { ...a, statut: next } : a)));
                 } else if (confirmUserAction.type === 'bulkToggle') {
                   const { ids, next } = confirmUserAction;
-                  setAgents((prev) => prev.map((a) => (ids.includes(a.id) ? { ...a, statut: next } : a)));
+                  setAgents((prev: Agent[]) => prev.map((a: Agent) => (ids.includes(a.id) ? { ...a, statut: next } : a)));
                   setSelectedIds([]);
                 }
                 setConfirmUserAction(null);
@@ -479,7 +479,7 @@ export const AgentsPage = () => {
               createdAt: new Date().toISOString(),
             };
 
-            const res = await apiFetch('/agents', {
+            const res = await apiFetch('/api/agents', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
@@ -489,7 +489,7 @@ export const AgentsPage = () => {
               throw new Error(err.error || err.message || 'Création échouée');
             }
             // MàJ immédiate de l’UI
-            const nextId = Math.max(0, ...agents.map((a) => a.id)) + 1;
+            const nextId = Math.max(0, ...agents.map((a: Agent) => a.id)) + 1;
             const newAgent: Agent = {
               id: nextId,
               prenom: p.prenom,
@@ -502,7 +502,7 @@ export const AgentsPage = () => {
               userNumber,
               statut: 'Actif',
             };
-            setAgents((prev) => [newAgent, ...prev]);
+            setAgents((prev: Agent[]) => [newAgent, ...prev]);
             setActive('Utilisateur');
             setUsersTab('actifs');
             setCurrentPage(1);
