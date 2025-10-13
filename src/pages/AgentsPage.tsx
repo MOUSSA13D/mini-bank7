@@ -17,11 +17,12 @@ import { ProfilePage, type ProfileData } from './ProfilePage';
 import { DepositForm } from '../components/DepositForm';
 import { mockTransactions } from '../data/mockTransactions';
 import { LoginPage } from './LoginPage';
+import { apiFetch } from '../lib/api';
 
 export const AgentsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [agents, setAgents] = useState<Agent[]>(mockAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [active, setActive] = useState<SidebarKey>('Dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -59,6 +60,35 @@ export const AgentsPage = () => {
         }
       }
     } catch {}
+  }, []);
+
+  // Charger les agents depuis l'API backend
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch('/agents?page=1&pageSize=100');
+        if (!res.ok) throw new Error('failed');
+        const data = await res.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        // Adapter les documents backend à notre type Agent pour l'UI
+        const mapped: Agent[] = items.map((doc: any, idx: number) => ({
+          id: idx + 1,
+          prenom: doc.firstName || doc.prenom || '—',
+          nom: doc.lastName || doc.nom || (doc.name || '—'),
+          numeroTelephone: doc.numeroTelephone || doc.phone || '—',
+          statut: 'Actif',
+          email: doc.email,
+          accountNumber: doc.accountNumber || doc.agentCode || undefined,
+          userType: doc.userType || 'Agent',
+          solde: typeof doc.solde === 'number' ? doc.solde : 0,
+          userNumber: doc.userNumber || undefined,
+        }));
+        setAgents(mapped);
+      } catch (e) {
+        // En cas d'échec, conserver la data mock pour ne pas casser l'UI
+        setAgents(mockAgents);
+      }
+    })();
   }, []);
 
   // Filter agents based on search query (includes email and account number)
@@ -427,31 +457,62 @@ export const AgentsPage = () => {
       <CreateUserModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreate={(p) => {
-          const nextId = Math.max(0, ...agents.map((a) => a.id)) + 1;
-          const prefix = p.userType === 'Distributeur' ? 'DIS' : p.userType === 'Client' ? 'CLI' : 'AGT';
-          const accountNumber = `${prefix}${Date.now()}`;
-          const userNumber = String(Math.floor(100000 + Math.random() * 900000));
-          const newAgent: Agent = {
-            id: nextId,
-            prenom: p.prenom,
-            nom: p.nom,
-            email: p.email,
-            numeroTelephone: p.numeroTelephone,
-            accountNumber,
-            userType: p.userType,
-            solde: 0,
-            userNumber,
-            statut: 'Actif',
-          };
-          setAgents((prev) => [newAgent, ...prev]);
-          // Ensure the new account is immediately visible in the user management section
-          setActive('Utilisateur');
-          setUsersTab('actifs');
-          setCurrentPage(1);
-          setCreateOpen(false);
-          setFlash('Compte créé avec succès');
-          setTimeout(() => setFlash(null), 2000);
+        onCreate={async (p) => {
+          try {
+            // Génération des identifiants UI et des champs requis backend
+            const prefix = p.userType === 'Distributeur' ? 'DIS' : p.userType === 'Client' ? 'CLI' : 'AGT';
+            const now = Date.now();
+            const accountNumber = `${prefix}${now}`;
+            const userNumber = String(Math.floor(100000 + Math.random() * 900000));
+
+            // Le backend requiert au minimum: agentCode, email
+            const payload = {
+              agentCode: accountNumber,
+              email: p.email,
+              firstName: p.prenom,
+              lastName: p.nom,
+              numeroTelephone: p.numeroTelephone,
+              userType: p.userType,
+              accountNumber,
+              userNumber,
+              statut: 'Actif',
+              createdAt: new Date().toISOString(),
+            };
+
+            const res = await apiFetch('/agents', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.error || err.message || 'Création échouée');
+            }
+            // MàJ immédiate de l’UI
+            const nextId = Math.max(0, ...agents.map((a) => a.id)) + 1;
+            const newAgent: Agent = {
+              id: nextId,
+              prenom: p.prenom,
+              nom: p.nom,
+              email: p.email,
+              numeroTelephone: p.numeroTelephone,
+              accountNumber,
+              userType: p.userType,
+              solde: 0,
+              userNumber,
+              statut: 'Actif',
+            };
+            setAgents((prev) => [newAgent, ...prev]);
+            setActive('Utilisateur');
+            setUsersTab('actifs');
+            setCurrentPage(1);
+            setCreateOpen(false);
+            setFlash('Compte créé avec succès');
+            setTimeout(() => setFlash(null), 2000);
+          } catch (e: any) {
+            setFlash(e?.message || 'Erreur lors de la création du compte');
+            setTimeout(() => setFlash(null), 3000);
+          }
         }}
       />
     </div>

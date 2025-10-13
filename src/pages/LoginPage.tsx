@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api';
 import logo from '../assets/16_02_44.png';
 
 interface LoginPageProps {
@@ -12,9 +13,7 @@ export const LoginPage = ({ onLogin, allowedEmail }: LoginPageProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Base URL de l'API: utilise VITE_API_BASE en priorité (ex: http://localhost:4000)
-  // sinon retombe sur le localhost en dev
-  const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:4000';
+  // L'URL de base est centralisée dans src/lib/api.ts via API_BASE
 
   // Pré-remplir l'email si fourni
   useEffect(() => {
@@ -29,8 +28,8 @@ export const LoginPage = ({ onLogin, allowedEmail }: LoginPageProps) => {
     setLoading(true);
 
     try {
-      // Correspond à la route backend: server/routes/auth.js -> router.post('/login', ...)
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      // Nouvelle route d'auth sécurisée: server/routes/auth.js -> POST /api/auth/login
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

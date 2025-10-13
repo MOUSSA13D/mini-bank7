@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import agentsRouter from './routes/agents.js';
+import authRouter from './routes/auth.js';
+import { getCollection } from './db.js';
 
 dotenv.config();
 
@@ -15,9 +17,22 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
+app.get('/', (_req, res) => res.json({ ok: true, service: 'mini-bank-api' }));
 app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/health/db', async (_req, res) => {
+  try {
+    const col = await getCollection(process.env.COLLECTION_NAME || 'agents');
+    // simple call to ensure connectivity
+    await col.estimatedDocumentCount();
+    res.json({ ok: true, db: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, db: false, error: 'db_connection_failed' });
+  }
+});
 
 // Routes
+app.use('/api/auth', authRouter);
 app.use('/agents', agentsRouter);
 
 // 404
