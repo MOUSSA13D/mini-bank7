@@ -1,6 +1,6 @@
 const envBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
 
-export const API_BASE: string = envBase || 'https://mini-bank-16.onrender.com/';
+export const API_BASE: string = envBase || 'https://mini-bank-16.onrender.com';
 
 export async function apiFetch(path: string, init?: RequestInit) {
   const url = /^https?:\/\//i.test(path) ? path : `${API_BASE}${path}`;
