@@ -39,6 +39,10 @@ export const LoginPage = ({ onLogin, allowedEmail }: LoginPageProps) => {
 
       // Le backend renvoie: { _id, email, fullName, token }
       if (res.ok && data.token) {
+        try {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('profile', JSON.stringify({ _id: data._id, email: data.email, fullName: data.fullName }));
+        } catch {}
         onLogin?.(data.email, data.fullName);
       } else {
         setError(data.message || 'Email ou mot de passe incorrect');
