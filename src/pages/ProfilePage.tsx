@@ -31,8 +31,13 @@ export const ProfilePage = ({ profile, onSave, onBack }: ProfilePageProps) => {
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = URL.createObjectURL(f);
-    setPhoto(url);
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Persist as base64 Data URL so it survives reloads and can be stored in localStorage
+      const dataUrl = typeof reader.result === 'string' ? reader.result : null;
+      if (dataUrl) setPhoto(dataUrl);
+    };
+    reader.readAsDataURL(f);
   }
 
   function save() {

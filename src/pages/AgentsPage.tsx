@@ -489,7 +489,7 @@ export const AgentsPage = () => {
               throw new Error(err.error || err.message || 'Création échouée');
             }
             // MàJ immédiate de l’UI
-            const nextId = Math.max(0, ...agents.map((a: Agent) => a.id)) + 1;
+            const nextId = Math.max(0, ...agents.map((a) => a.id)) + 1;
             const newAgent: Agent = {
               id: nextId,
               prenom: p.prenom,
@@ -502,7 +502,7 @@ export const AgentsPage = () => {
               userNumber,
               statut: 'Actif',
             };
-            setAgents((prev: Agent[]) => [newAgent, ...prev]);
+            setAgents((prev) => [newAgent, ...prev]);
             setActive('Utilisateur');
             setUsersTab('actifs');
             setCurrentPage(1);
