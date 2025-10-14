@@ -66,7 +66,7 @@ export const AgentsPage = () => {
   useEffect(() => {
     (async () => {
       try {
-  const res = await apiFetch('/api/agents?page=1&pageSize=100');
+        const res = await apiFetch('/api/agents?page=1&pageSize=100');
         if (!res.ok) throw new Error('failed');
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
@@ -134,11 +134,6 @@ export const AgentsPage = () => {
     const isOk = t.statut === 'Succès';
     return historyStatus === 'Validée' ? isOk : !isOk;
   });
-
-  // Only deposits performed by distributors
-  // const distributorDeposits = filteredTransactions.filter(
-  //   (t) => t.type === 'Depot' && t.userType === 'Distributeur'
-  // );
 
   // Cancel page: filter by reference number
   const cancelList = mockTransactions.filter((t) =>
@@ -406,8 +401,6 @@ export const AgentsPage = () => {
         </div>
       </main>
 
-      
-
       {/* Drawer for small screens, toggled by hamburger */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50">
@@ -465,33 +458,32 @@ export const AgentsPage = () => {
             const accountNumber = `${prefix}${now}`;
             const userNumber = String(Math.floor(100000 + Math.random() * 900000));
 
-            // Garde: l'endpoint /api/agents semble créer uniquement des agents
-            if (p.userType !== 'Agent') {
-              throw new Error("Pour créer via /api/agents, choisissez le type 'Agent'.");
-            }
-
-            // Schéma minimal probable attendu par le backend (éviter les champs inconnus)
+            // Payload complet avec tous les champs du formulaire
             const payload = {
               agentCode: accountNumber,
               email: p.email,
               firstName: p.prenom,
               lastName: p.nom,
-              phone: p.numeroTelephone,
-            } as const;
-
+              numeroTelephone: p.numeroTelephone,
+              userType: p.userType,
+              accountNumber,
+              userNumber,
+              statut: 'Actif',
+              createdAt: new Date().toISOString(),
+              cin: p.cin,
+              birthDate: p.birthDate,
+              adresse: p.adresse,
+            };
             const res = await apiFetch('/api/agents', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
             });
             if (!res.ok) {
-              let errBody: any = null;
-              try { errBody = await res.json(); } catch {}
-              // eslint-disable-next-line no-console
-              console.error('POST /api/agents failed', { status: res.status, errBody, payload });
-              throw new Error((errBody && (errBody.error || errBody.message)) || `Création échouée (HTTP ${res.status})`);
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err.error || err.message || 'Création échouée');
             }
-            // MàJ immédiate de l’UI
+            // MàJ immédiate de l'UI
             const nextId = Math.max(0, ...agents.map((a) => a.id)) + 1;
             const newAgent: Agent = {
               id: nextId,
@@ -520,4 +512,4 @@ export const AgentsPage = () => {
       />
     </div>
   );
-}
+};
