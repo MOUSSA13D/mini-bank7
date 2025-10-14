@@ -465,19 +465,19 @@ export const AgentsPage = () => {
             const accountNumber = `${prefix}${now}`;
             const userNumber = String(Math.floor(100000 + Math.random() * 900000));
 
-            // Le backend requiert au minimum: agentCode, email
+            // Garde: l'endpoint /api/agents semble créer uniquement des agents
+            if (p.userType !== 'Agent') {
+              throw new Error("Pour créer via /api/agents, choisissez le type 'Agent'.");
+            }
+
+            // Schéma minimal probable attendu par le backend (éviter les champs inconnus)
             const payload = {
               agentCode: accountNumber,
               email: p.email,
               firstName: p.prenom,
               lastName: p.nom,
-              numeroTelephone: p.numeroTelephone,
-              userType: p.userType,
-              accountNumber,
-              userNumber,
-              statut: 'Actif',
-              createdAt: new Date().toISOString(),
-            };
+              phone: p.numeroTelephone,
+            } as const;
 
             const res = await apiFetch('/api/agents', {
               method: 'POST',
@@ -485,8 +485,11 @@ export const AgentsPage = () => {
               body: JSON.stringify(payload),
             });
             if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              throw new Error(err.error || err.message || 'Création échouée');
+              let errBody: any = null;
+              try { errBody = await res.json(); } catch {}
+              // eslint-disable-next-line no-console
+              console.error('POST /api/agents failed', { status: res.status, errBody, payload });
+              throw new Error((errBody && (errBody.error || errBody.message)) || `Création échouée (HTTP ${res.status})`);
             }
             // MàJ immédiate de l’UI
             const nextId = Math.max(0, ...agents.map((a) => a.id)) + 1;
