@@ -1,5 +1,26 @@
+// Resolve API base URL with the following precedence:
+// 1) VITE_API_BASE env (set in .env or deployment)
+// 2) If running on localhost -> use local backend
+// 3) Fallback to deployed backend URL
+const inferApiBase = () => {
+  // Vite env var
+  const envBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
+  if (envBase && /^https?:\/\//i.test(envBase)) return envBase.replace(/\/$/, '');
 
-export const API_BASE: string = 'https://mini-bank-16.onrender.com';
+  try {
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') {
+        const port = 4000;
+        return `http://localhost:${port}`;
+      }
+    }
+  } catch {}
+
+  return 'https://mini-bank-16.onrender.com';
+};
+
+export const API_BASE: string = inferApiBase();
 
 export async function apiFetch(path: string, init?: RequestInit) {
   const url = /^https?:\/\//i.test(path) ? path : `${API_BASE}${path}`;
